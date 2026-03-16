@@ -1,0 +1,11 @@
+{
+    "recommendations": 
+    [
+        "uloco.theme-bluloco-dark",
+        "tyriar.sort-lines",
+        "ms-python.python",
+        "ms-vscode.vscode-typescript-next",
+        "github.copilot",
+        "cweijan.vscode-redis-client"
+    ]
+}

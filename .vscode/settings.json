@@ -1,0 +1,18 @@
+{
+    "editor.fontFamily": "'Courier New', Menlo, Monaco, monospace",
+    "editor.fontSize": 12,
+    "files.watcherExclude": 
+    {
+        "**/.git/**": true,
+        "**/node_modules/**": true,
+        "**/transaction_datas/**": true
+    },    
+    "terminal.integrated.tabs.defaultColor": "terminal.ansiBlack",
+    "chat.tools.terminal.autoApprove": {
+        "cp": true,
+        "git commit": true,
+        "git push": true
+    },
+    "python-envs.defaultEnvManager": "ms-python.python:system",
+    "python-envs.pythonProjects": []
+}
