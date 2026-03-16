@@ -62,28 +62,30 @@ class TradingAgentsGraph:
         self.config = config or DEFAULT_CONFIG
         self.callbacks = callbacks or []
 
-        # Update the interface's config
+        # 将配置同步到数据接口层（数据供应商路由等配置）
         set_config(self.config)
 
-        # Create necessary directories
+        # 创建必要的目录（数据缓存等）
         os.makedirs(
             os.path.join(self.config["project_dir"], "dataflows/data_cache"),
             exist_ok=True,
         )
 
-        # Initialize LLMs with provider-specific thinking configuration
+        # 根据 Provider 特定参数初始化两个 LLM 实例
         llm_kwargs = self._get_provider_kwargs()
 
-        # Add callbacks to kwargs if provided (passed to LLM constructor)
+        # 若提供了回调处理器，将其传入 LLM 构造函数
         if self.callbacks:
             llm_kwargs["callbacks"] = self.callbacks
 
+        # 深度思考 LLM 客户端（用于 Research Manager / Risk Judge 等复杂决策）
         deep_client = create_llm_client(
             provider=self.config["llm_provider"],
             model=self.config["deep_think_llm"],
             base_url=self.config.get("backend_url"),
             **llm_kwargs,
         )
+        # 快速响应 LLM 客户端（用于各分析师、研究员、交易员等高频节点）
         quick_client = create_llm_client(
             provider=self.config["llm_provider"],
             model=self.config["quick_think_llm"],
@@ -91,20 +93,20 @@ class TradingAgentsGraph:
             **llm_kwargs,
         )
 
-        self.deep_thinking_llm = deep_client.get_llm()
-        self.quick_thinking_llm = quick_client.get_llm()
+        self.deep_thinking_llm = deep_client.get_llm()   # 深度思考模型实例
+        self.quick_thinking_llm = quick_client.get_llm() # 快速响应模型实例
         
-        # Initialize memories
+        # 初始化各 Agent 的记忆库（基于 BM25 语义搜索，存储历史决策经验）
         self.bull_memory = FinancialSituationMemory("bull_memory", self.config)
         self.bear_memory = FinancialSituationMemory("bear_memory", self.config)
         self.trader_memory = FinancialSituationMemory("trader_memory", self.config)
         self.invest_judge_memory = FinancialSituationMemory("invest_judge_memory", self.config)
         self.risk_manager_memory = FinancialSituationMemory("risk_manager_memory", self.config)
 
-        # Create tool nodes
+        # 创建 LangChain 工具节点（封装各类数据获取工具）
         self.tool_nodes = self._create_tool_nodes()
 
-        # Initialize components
+        # 初始化图的各功能组件
         self.conditional_logic = ConditionalLogic(
             max_debate_rounds=self.config["max_debate_rounds"],
             max_risk_discuss_rounds=self.config["max_risk_discuss_rounds"],
@@ -125,12 +127,12 @@ class TradingAgentsGraph:
         self.reflector = Reflector(self.quick_thinking_llm)
         self.signal_processor = SignalProcessor(self.quick_thinking_llm)
 
-        # State tracking
-        self.curr_state = None
-        self.ticker = None
-        self.log_states_dict = {}  # date to full state dict
+        # 状态追踪：保存当前运行状态和历史日志
+        self.curr_state = None          # 最近一次 propagate 的完整状态
+        self.ticker = None              # 当前分析的股票代码
+        self.log_states_dict = {}       # 日期 → 完整状态字典的映射
 
-        # Set up the graph
+        # 根据所选分析师配置构建并编译计算图
         self.graph = self.graph_setup.setup_graph(selected_analysts)
 
     def _get_provider_kwargs(self) -> Dict[str, Any]:
@@ -151,37 +153,36 @@ class TradingAgentsGraph:
         return kwargs
 
     def _create_tool_nodes(self) -> Dict[str, ToolNode]:
-        """Create tool nodes for different data sources using abstract methods."""
+        """创建各类数据工具节点（市场/社媒/新闻/基本面）。"""
         return {
+            # 市场分析师使用的工具节点
             "market": ToolNode(
                 [
-                    # Core stock data tools
-                    get_stock_data,
-                    # Technical indicators
-                    get_indicators,
+                    get_stock_data,    # 股价 OHLCV 原始数据
+                    get_indicators,    # 技术指标（RSI / MACD / Bollinger 等）
                 ]
             ),
+            # 社交媒体分析师使用的工具节点
             "social": ToolNode(
                 [
-                    # News tools for social media analysis
-                    get_news,
+                    get_news,          # 公司专属新闻（用于情绪分析）
                 ]
             ),
+            # 新闻分析师使用的工具节点
             "news": ToolNode(
                 [
-                    # News and insider information
-                    get_news,
-                    get_global_news,
-                    get_insider_transactions,
+                    get_news,                    # 公司新闻
+                    get_global_news,             # 全球宏观新闻
+                    get_insider_transactions,    # 内部人士交易记录
                 ]
             ),
+            # 基本面分析师使用的工具节点
             "fundamentals": ToolNode(
                 [
-                    # Fundamental analysis tools
-                    get_fundamentals,
-                    get_balance_sheet,
-                    get_cashflow,
-                    get_income_statement,
+                    get_fundamentals,       # 综合基本面数据
+                    get_balance_sheet,      # 资产负债表
+                    get_cashflow,           # 现金流量表
+                    get_income_statement,   # 利润表
                 ]
             ),
         }
@@ -191,14 +192,14 @@ class TradingAgentsGraph:
 
         self.ticker = company_name
 
-        # Initialize state
+        # 创建初始状态字典（包含股票代码、交易日期、空的辩论状态等）
         init_agent_state = self.propagator.create_initial_state(
             company_name, trade_date
         )
         args = self.propagator.get_graph_args()
 
         if self.debug:
-            # Debug mode with tracing
+            # 调试模式：逐步流式执行，打印每个节点的最新消息
             trace = []
             for chunk in self.graph.stream(init_agent_state, **args):
                 if len(chunk["messages"]) == 0:
@@ -209,16 +210,16 @@ class TradingAgentsGraph:
 
             final_state = trace[-1]
         else:
-            # Standard mode without tracing
+            # 标准模式：一次性执行图并直接返回最终状态
             final_state = self.graph.invoke(init_agent_state, **args)
 
-        # Store current state for reflection
+        # 保存当前状态，供后续 reflect_and_remember 使用
         self.curr_state = final_state
 
-        # Log state
+        # 将各阶段报告和决策写入 JSON 日志文件
         self._log_state(trade_date, final_state)
 
-        # Return decision and processed signal
+        # 返回完整状态和结构化交易信号（BUY / SELL / HOLD）
         return final_state, self.process_signal(final_state["final_trade_decision"])
 
     def _log_state(self, trade_date, final_state):
@@ -253,7 +254,7 @@ class TradingAgentsGraph:
             "final_trade_decision": final_state["final_trade_decision"],
         }
 
-        # Save to file
+        # 确保日志目录存在并将状态字典序列化写入 JSON 文件
         directory = Path(f"eval_results/{self.ticker}/TradingAgentsStrategy_logs/")
         directory.mkdir(parents=True, exist_ok=True)
 

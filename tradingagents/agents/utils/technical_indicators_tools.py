@@ -10,18 +10,17 @@ def get_indicators(
     look_back_days: Annotated[int, "how many days to look back"] = 30,
 ) -> str:
     """
-    Retrieve a single technical indicator for a given ticker symbol.
-    Uses the configured technical_indicators vendor.
+    获取指定股票的单个技术指标数据。
+    供应商屁1 technical_indicators 配置决定：可选 alpha_vantage 或 yfinance。
     Args:
-        symbol (str): Ticker symbol of the company, e.g. AAPL, TSM
-        indicator (str): A single technical indicator name, e.g. 'rsi', 'macd'. Call this tool once per indicator.
-        curr_date (str): The current trading date you are trading on, YYYY-mm-dd
-        look_back_days (int): How many days to look back, default is 30
+        symbol (str): 公司股票代码，如 AAPL, TSM
+        indicator (str): 单个技术指标名称，如 'rsi', 'macd'。每次调用只传一个指标。
+        curr_date (str): 当前交易日期，格式 YYYY-mm-dd
+        look_back_days (int): 回看天数，默认 30 天
     Returns:
-        str: A formatted dataframe containing the technical indicators for the specified ticker symbol and indicator.
+        str: 包含指定股票和指标数据的格式化表格字符串
     """
-    # LLMs sometimes pass multiple indicators as a comma-separated string;
-    # split and process each individually.
+    # LLM 有时会将多个指标作为逗号分隔的字符串传入，需拆分后逐个处理
     indicators = [i.strip() for i in indicator.split(",") if i.strip()]
     if len(indicators) > 1:
         results = []

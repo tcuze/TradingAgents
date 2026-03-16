@@ -10,13 +10,13 @@ def get_stock_data(
     end_date: Annotated[str, "End date in yyyy-mm-dd format"],
 ) -> str:
     """
-    Retrieve stock price data (OHLCV) for a given ticker symbol.
-    Uses the configured core_stock_apis vendor.
+    获取指定股票代码的价格数据（OHLCV：开盘价/最高价/最低价/收盘价/成交量）。
+    供应商屁1 core_stock_apis 配置决定：可选 alpha_vantage 或 yfinance。
     Args:
-        symbol (str): Ticker symbol of the company, e.g. AAPL, TSM
-        start_date (str): Start date in yyyy-mm-dd format
-        end_date (str): End date in yyyy-mm-dd format
+        symbol (str): 公司股票代码，如 AAPL, TSM
+        start_date (str): 起始日期，格式 yyyy-mm-dd
+        end_date (str): 结束日期，格式 yyyy-mm-dd
     Returns:
-        str: A formatted dataframe containing the stock price data for the specified ticker symbol in the specified date range.
+        str: 包含指定日期区间内股价数据的格式化表格字符串
     """
     return route_to_vendor("get_stock_data", symbol, start_date, end_date)

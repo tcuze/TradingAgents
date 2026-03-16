@@ -6,10 +6,13 @@ from tradingagents.dataflows.config import get_config
 
 
 def create_news_analyst(llm):
+    """工厂函数：创建新闻分析师节点函数。"""
     def news_analyst_node(state):
+        """新闻分析师节点：分析全球宏观新闻和公司专属新闻。"""
         current_date = state["trade_date"]
         ticker = state["company_of_interest"]
 
+        # 新闻分析师可用工具：公司专属新闻 + 全球宏观新闻
         tools = [
             get_news,
             get_global_news,
@@ -47,12 +50,13 @@ def create_news_analyst(llm):
 
         report = ""
 
+        # 如果没有工具调用，说明分析师已完成报告生成
         if len(result.tool_calls) == 0:
             report = result.content
 
         return {
             "messages": [result],
-            "news_report": report,
+            "news_report": report,  # 写入新闻报告字段
         }
 
     return news_analyst_node

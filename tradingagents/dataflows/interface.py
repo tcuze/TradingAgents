@@ -27,22 +27,22 @@ from .alpha_vantage_common import AlphaVantageRateLimitError
 # Configuration and routing logic
 from .config import get_config
 
-# Tools organized by category
+# 工具按类别组织，每个类别包含说明和工具名称列表
 TOOLS_CATEGORIES = {
     "core_stock_apis": {
-        "description": "OHLCV stock price data",
+        "description": "OHLCV stock price data",       # 股价原始数据
         "tools": [
             "get_stock_data"
         ]
     },
     "technical_indicators": {
-        "description": "Technical analysis indicators",
+        "description": "Technical analysis indicators", # 技术分析指标
         "tools": [
             "get_indicators"
         ]
     },
     "fundamental_data": {
-        "description": "Company fundamentals",
+        "description": "Company fundamentals",          # 公司基本面数据
         "tools": [
             "get_fundamentals",
             "get_balance_sheet",
@@ -51,7 +51,7 @@ TOOLS_CATEGORIES = {
         ]
     },
     "news_data": {
-        "description": "News and insider data",
+        "description": "News and insider data",          # 新闻和内部交易数据
         "tools": [
             "get_news",
             "get_global_news",
@@ -60,24 +60,25 @@ TOOLS_CATEGORIES = {
     }
 }
 
+# 展持的供应商列表
 VENDOR_LIST = [
     "yfinance",
     "alpha_vantage",
 ]
 
-# Mapping of methods to their vendor-specific implementations
+# 工具名到具体实现的映射表（策略模式）
 VENDOR_METHODS = {
-    # core_stock_apis
+    # core_stock_apis — 股价 OHLCV 数据
     "get_stock_data": {
         "alpha_vantage": get_alpha_vantage_stock,
         "yfinance": get_YFin_data_online,
     },
-    # technical_indicators
+    # technical_indicators — 技术指标
     "get_indicators": {
         "alpha_vantage": get_alpha_vantage_indicator,
         "yfinance": get_stock_stats_indicators_window,
     },
-    # fundamental_data
+    # fundamental_data — 基本面/财务数据
     "get_fundamentals": {
         "alpha_vantage": get_alpha_vantage_fundamentals,
         "yfinance": get_yfinance_fundamentals,
@@ -94,7 +95,7 @@ VENDOR_METHODS = {
         "alpha_vantage": get_alpha_vantage_income_statement,
         "yfinance": get_yfinance_income_statement,
     },
-    # news_data
+    # news_data — 新闻和内部交易
     "get_news": {
         "alpha_vantage": get_alpha_vantage_news,
         "yfinance": get_news_yfinance,
@@ -110,37 +111,37 @@ VENDOR_METHODS = {
 }
 
 def get_category_for_method(method: str) -> str:
-    """Get the category that contains the specified method."""
+    """根据工具名称查找其所属类别。"""
     for category, info in TOOLS_CATEGORIES.items():
         if method in info["tools"]:
             return category
     raise ValueError(f"Method '{method}' not found in any category")
 
 def get_vendor(category: str, method: str = None) -> str:
-    """Get the configured vendor for a data category or specific tool method.
-    Tool-level configuration takes precedence over category-level.
+    """获取指定类别或具体工具的配置供应商名称。
+    工具级别配置优先级高于类别级别。
     """
     config = get_config()
 
-    # Check tool-level configuration first (if method provided)
+    # 工具级别配置优先（如果传入了 method 名称）
     if method:
         tool_vendors = config.get("tool_vendors", {})
         if method in tool_vendors:
             return tool_vendors[method]
 
-    # Fall back to category-level configuration
+    # 回退到类别级别配置
     return config.get("data_vendors", {}).get(category, "default")
 
 def route_to_vendor(method: str, *args, **kwargs):
-    """Route method calls to appropriate vendor implementation with fallback support."""
+    """将工具调用路由到对应供应商实现，支持自动降级回退。"""
     category = get_category_for_method(method)
     vendor_config = get_vendor(category, method)
-    primary_vendors = [v.strip() for v in vendor_config.split(',')]
+    primary_vendors = [v.strip() for v in vendor_config.split(',')]  # 支持逗号分隔的多个主供应商
 
     if method not in VENDOR_METHODS:
         raise ValueError(f"Method '{method}' not supported")
 
-    # Build fallback chain: primary vendors first, then remaining available vendors
+    # 构建降级链：主供应商列表优先，剩余可用供应商搞缺补
     all_available_vendors = list(VENDOR_METHODS[method].keys())
     fallback_vendors = primary_vendors.copy()
     for vendor in all_available_vendors:
@@ -149,7 +150,7 @@ def route_to_vendor(method: str, *args, **kwargs):
 
     for vendor in fallback_vendors:
         if vendor not in VENDOR_METHODS[method]:
-            continue
+            continue  # 跳过不支持该方法的供应商
 
         vendor_impl = VENDOR_METHODS[method][vendor]
         impl_func = vendor_impl[0] if isinstance(vendor_impl, list) else vendor_impl
@@ -157,6 +158,6 @@ def route_to_vendor(method: str, *args, **kwargs):
         try:
             return impl_func(*args, **kwargs)
         except AlphaVantageRateLimitError:
-            continue  # Only rate limits trigger fallback
+            continue  # 仅 Alpha Vantage 限流错误触发降级回退，其他错误正常抛出
 
     raise RuntimeError(f"No available vendor for '{method}'")

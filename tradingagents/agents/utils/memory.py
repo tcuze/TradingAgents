@@ -1,7 +1,7 @@
-"""Financial situation memory using BM25 for lexical similarity matching.
+"""基于 BM25 算法的金融情境记忆模块。
 
-Uses BM25 (Best Matching 25) algorithm for retrieval - no API calls,
-no token limits, works offline with any LLM provider.
+使用 BM25（Best Matching 25）词频统计算法进行文本相似度检索。
+无需 API 调用，无 Token 限制，完全离线运行，兼容任意 LLM 供应商。
 """
 
 from rank_bm25 import BM25Okapi
@@ -10,31 +10,31 @@ import re
 
 
 class FinancialSituationMemory:
-    """Memory system for storing and retrieving financial situations using BM25."""
+    """基于 BM25 的金融情境记忆系统，用于存储和检索历史经验。"""
 
     def __init__(self, name: str, config: dict = None):
-        """Initialize the memory system.
+        """初始化记忆系统。
 
         Args:
-            name: Name identifier for this memory instance
-            config: Configuration dict (kept for API compatibility, not used for BM25)
+            name: 当前记忆实例的标识名称
+            config: 配置字典（保留以兼容接口，BM25 模式下不使用）
         """
         self.name = name
-        self.documents: List[str] = []
-        self.recommendations: List[str] = []
-        self.bm25 = None
+        self.documents: List[str] = []       # 存储市场情境文本
+        self.recommendations: List[str] = [] # 存储对应的反思建议
+        self.bm25 = None                     # BM25 索引对象
 
     def _tokenize(self, text: str) -> List[str]:
-        """Tokenize text for BM25 indexing.
+        """对文本进行分词，用于 BM25 索引构建和查询。
 
-        Simple whitespace + punctuation tokenization with lowercasing.
+        使用简单的空白符 + 标点符号分割策略，并统一转为小写。
         """
-        # Lowercase and split on non-alphanumeric characters
+        # 转为小写并按非字母数字字符分割
         tokens = re.findall(r'\b\w+\b', text.lower())
         return tokens
 
     def _rebuild_index(self):
-        """Rebuild the BM25 index after adding documents."""
+        """添加文档后重新构建 BM25 索引。"""
         if self.documents:
             tokenized_docs = [self._tokenize(doc) for doc in self.documents]
             self.bm25 = BM25Okapi(tokenized_docs)
@@ -42,46 +42,45 @@ class FinancialSituationMemory:
             self.bm25 = None
 
     def add_situations(self, situations_and_advice: List[Tuple[str, str]]):
-        """Add financial situations and their corresponding advice.
+        """添加金融情境及对应的反思建议。
 
         Args:
-            situations_and_advice: List of tuples (situation, recommendation)
+            situations_and_advice: (市场情境描述, 改进建议) 元组列表
         """
         for situation, recommendation in situations_and_advice:
             self.documents.append(situation)
             self.recommendations.append(recommendation)
 
-        # Rebuild BM25 index with new documents
+        # 重建 BM25 索引以包含新增文档
         self._rebuild_index()
 
     def get_memories(self, current_situation: str, n_matches: int = 1) -> List[dict]:
-        """Find matching recommendations using BM25 similarity.
+        """使用 BM25 相似度搜索最匹配的历史经验。
 
         Args:
-            current_situation: The current financial situation to match against
-            n_matches: Number of top matches to return
+            current_situation: 当前市场情境描述文本
+            n_matches: 返回的最佳匹配数量
 
         Returns:
-            List of dicts with matched_situation, recommendation, and similarity_score
+            包含 matched_situation、recommendation、similarity_score 的字典列表
         """
         if not self.documents or self.bm25 is None:
-            return []
+            return []  # 记忆库为空时直接返回空列表
 
-        # Tokenize query
+        # 对查询文本进行分词
         query_tokens = self._tokenize(current_situation)
 
-        # Get BM25 scores for all documents
+        # 计算所有文档的 BM25 分数
         scores = self.bm25.get_scores(query_tokens)
 
-        # Get top-n indices sorted by score (descending)
+        # 按分数降序排列，取前 n 个索引
         top_indices = sorted(range(len(scores)), key=lambda i: scores[i], reverse=True)[:n_matches]
 
-        # Build results
+        # 构建结果列表，将分数归一化到 [0, 1] 区间
         results = []
-        max_score = max(scores) if max(scores) > 0 else 1  # Normalize scores
+        max_score = max(scores) if max(scores) > 0 else 1  # 避免除以零
 
         for idx in top_indices:
-            # Normalize score to 0-1 range for consistency
             normalized_score = scores[idx] / max_score if max_score > 0 else 0
             results.append({
                 "matched_situation": self.documents[idx],
@@ -92,7 +91,7 @@ class FinancialSituationMemory:
         return results
 
     def clear(self):
-        """Clear all stored memories."""
+        """清空所有存储的记忆。"""
         self.documents = []
         self.recommendations = []
         self.bm25 = None

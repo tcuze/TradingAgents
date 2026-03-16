@@ -9,13 +9,13 @@ def get_fundamentals(
     curr_date: Annotated[str, "current date you are trading at, yyyy-mm-dd"],
 ) -> str:
     """
-    Retrieve comprehensive fundamental data for a given ticker symbol.
-    Uses the configured fundamental_data vendor.
+    获取指定股票的综合基本面数据报告。
+    供应商屁1 fundamental_data 配置决定：可选 alpha_vantage 或 yfinance。
     Args:
-        ticker (str): Ticker symbol of the company
-        curr_date (str): Current date you are trading at, yyyy-mm-dd
+        ticker (str): 公司股票代码
+        curr_date (str): 当前交易日期，格式 yyyy-mm-dd
     Returns:
-        str: A formatted report containing comprehensive fundamental data
+        str: 包含综合基本面数据的格式化报告
     """
     return route_to_vendor("get_fundamentals", ticker, curr_date)
 
@@ -27,14 +27,14 @@ def get_balance_sheet(
     curr_date: Annotated[str, "current date you are trading at, yyyy-mm-dd"] = None,
 ) -> str:
     """
-    Retrieve balance sheet data for a given ticker symbol.
-    Uses the configured fundamental_data vendor.
+    获取指定股票的资产负债表数据。
+    供应商屁1 fundamental_data 配置决定。
     Args:
-        ticker (str): Ticker symbol of the company
-        freq (str): Reporting frequency: annual/quarterly (default quarterly)
-        curr_date (str): Current date you are trading at, yyyy-mm-dd
+        ticker (str): 公司股票代码
+        freq (str): 报告频率： annual（年报）/quarterly（季报），默认季报
+        curr_date (str): 当前交易日期，格式 yyyy-mm-dd
     Returns:
-        str: A formatted report containing balance sheet data
+        str: 包含资产负债表数据的格式化报告
     """
     return route_to_vendor("get_balance_sheet", ticker, freq, curr_date)
 
@@ -46,14 +46,14 @@ def get_cashflow(
     curr_date: Annotated[str, "current date you are trading at, yyyy-mm-dd"] = None,
 ) -> str:
     """
-    Retrieve cash flow statement data for a given ticker symbol.
-    Uses the configured fundamental_data vendor.
+    获取指定股票的现金流量表数据。
+    供应商屁1 fundamental_data 配置决定。
     Args:
-        ticker (str): Ticker symbol of the company
-        freq (str): Reporting frequency: annual/quarterly (default quarterly)
-        curr_date (str): Current date you are trading at, yyyy-mm-dd
+        ticker (str): 公司股票代码
+        freq (str): 报告频率： annual / quarterly，默认季报
+        curr_date (str): 当前交易日期，格式 yyyy-mm-dd
     Returns:
-        str: A formatted report containing cash flow statement data
+        str: 包含现金流量表数据的格式化报告
     """
     return route_to_vendor("get_cashflow", ticker, freq, curr_date)
 
@@ -65,13 +65,13 @@ def get_income_statement(
     curr_date: Annotated[str, "current date you are trading at, yyyy-mm-dd"] = None,
 ) -> str:
     """
-    Retrieve income statement data for a given ticker symbol.
-    Uses the configured fundamental_data vendor.
+    获取指定股票的利润表数据。
+    供应商屁1 fundamental_data 配置决定。
     Args:
-        ticker (str): Ticker symbol of the company
-        freq (str): Reporting frequency: annual/quarterly (default quarterly)
-        curr_date (str): Current date you are trading at, yyyy-mm-dd
+        ticker (str): 公司股票代码
+        freq (str): 报告频率： annual / quarterly，默认季报
+        curr_date (str): 当前交易日期，格式 yyyy-mm-dd
     Returns:
-        str: A formatted report containing income statement data
+        str: 包含利润表数据的格式化报告
     """
     return route_to_vendor("get_income_statement", ticker, freq, curr_date)

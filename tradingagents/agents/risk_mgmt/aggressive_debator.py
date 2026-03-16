@@ -3,13 +3,15 @@ import json
 
 
 def create_aggressive_debator(llm):
+    """工厂函数：创建激进风险分析师节点函数。"""
     def aggressive_node(state) -> dict:
+        """激进风险分析师：唂倡高风险高收益策略，反驳保守和中性立场。"""
         risk_debate_state = state["risk_debate_state"]
-        history = risk_debate_state.get("history", "")
-        aggressive_history = risk_debate_state.get("aggressive_history", "")
+        history = risk_debate_state.get("history", "")                          # 全部讨论历史
+        aggressive_history = risk_debate_state.get("aggressive_history", "")    # 激进方历史发言
 
-        current_conservative_response = risk_debate_state.get("current_conservative_response", "")
-        current_neutral_response = risk_debate_state.get("current_neutral_response", "")
+        current_conservative_response = risk_debate_state.get("current_conservative_response", "")  # 保守方最新辩论
+        current_neutral_response = risk_debate_state.get("current_neutral_response", "")            # 中性方最新辩论
 
         market_research_report = state["market_report"]
         sentiment_report = state["sentiment_report"]
@@ -34,20 +36,21 @@ Engage actively by addressing any specific concerns raised, refuting the weaknes
 
         response = llm.invoke(prompt)
 
-        argument = f"Aggressive Analyst: {response.content}"
+        argument = f"Aggressive Analyst: {response.content}"  # 添加激进方标识前缀
 
+        # 更新风险辩论状态：将该次发言写入激进方历史
         new_risk_debate_state = {
             "history": history + "\n" + argument,
             "aggressive_history": aggressive_history + "\n" + argument,
             "conservative_history": risk_debate_state.get("conservative_history", ""),
             "neutral_history": risk_debate_state.get("neutral_history", ""),
-            "latest_speaker": "Aggressive",
+            "latest_speaker": "Aggressive",  # 标识最后发言者
             "current_aggressive_response": argument,
             "current_conservative_response": risk_debate_state.get("current_conservative_response", ""),
             "current_neutral_response": risk_debate_state.get(
                 "current_neutral_response", ""
             ),
-            "count": risk_debate_state["count"] + 1,
+            "count": risk_debate_state["count"] + 1,  # 讨论轮次 +1
         }
 
         return {"risk_debate_state": new_risk_debate_state}

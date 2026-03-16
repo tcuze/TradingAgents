@@ -52,7 +52,7 @@ class GraphSetup:
         if len(selected_analysts) == 0:
             raise ValueError("Trading Agents Graph Setup Error: no analysts selected!")
 
-        # Create analyst nodes
+        # 创建分析师节点（根据 selected_analysts 动态展开）
         analyst_nodes = {}
         delete_nodes = {}
         tool_nodes = {}
@@ -85,7 +85,7 @@ class GraphSetup:
             delete_nodes["fundamentals"] = create_msg_delete()
             tool_nodes["fundamentals"] = self.tool_nodes["fundamentals"]
 
-        # Create researcher and manager nodes
+        # 创建研究员、研究经理、交易员节点
         bull_researcher_node = create_bull_researcher(
             self.quick_thinking_llm, self.bull_memory
         )
@@ -97,7 +97,7 @@ class GraphSetup:
         )
         trader_node = create_trader(self.quick_thinking_llm, self.trader_memory)
 
-        # Create risk analysis nodes
+        # 创建风险辩论层节点（激进、中性、保守三方分析师 + 风险裁判官）
         aggressive_analyst = create_aggressive_debator(self.quick_thinking_llm)
         neutral_analyst = create_neutral_debator(self.quick_thinking_llm)
         conservative_analyst = create_conservative_debator(self.quick_thinking_llm)
@@ -105,10 +105,10 @@ class GraphSetup:
             self.deep_thinking_llm, self.risk_manager_memory
         )
 
-        # Create workflow
+        # 初始化 StateGraph，全局状态类型为 AgentState
         workflow = StateGraph(AgentState)
 
-        # Add analyst nodes to the graph
+        # 将分析师节点加入图（一对一 + 工具节点 + 消息清除节点）
         for analyst_type, node in analyst_nodes.items():
             workflow.add_node(f"{analyst_type.capitalize()} Analyst", node)
             workflow.add_node(
@@ -116,7 +116,7 @@ class GraphSetup:
             )
             workflow.add_node(f"tools_{analyst_type}", tool_nodes[analyst_type])
 
-        # Add other nodes
+        # 加入研究员、经理、交易员、风险分析师等其余节点
         workflow.add_node("Bull Researcher", bull_researcher_node)
         workflow.add_node("Bear Researcher", bear_researcher_node)
         workflow.add_node("Research Manager", research_manager_node)
@@ -126,12 +126,12 @@ class GraphSetup:
         workflow.add_node("Conservative Analyst", conservative_analyst)
         workflow.add_node("Risk Judge", risk_manager_node)
 
-        # Define edges
-        # Start with the first analyst
+        # 定义连接边（按分析师顺序依次连接）
+        # 从 START 直接连接到第一个分析师
         first_analyst = selected_analysts[0]
         workflow.add_edge(START, f"{first_analyst.capitalize()} Analyst")
 
-        # Connect analysts in sequence
+        # 将各分析师依次按顺序连接，最后一个连接到研究辩论节点
         for i, analyst_type in enumerate(selected_analysts):
             current_analyst = f"{analyst_type.capitalize()} Analyst"
             current_tools = f"tools_{analyst_type}"
@@ -198,5 +198,5 @@ class GraphSetup:
 
         workflow.add_edge("Risk Judge", END)
 
-        # Compile and return
+        # 编译&返回图对象
         return workflow.compile()

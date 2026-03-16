@@ -6,12 +6,15 @@ from tradingagents.dataflows.config import get_config
 
 
 def create_market_analyst(llm):
+    """工厂函数：创建市场分析师节点函数。"""
 
     def market_analyst_node(state):
+        """市场分析师节点：利用技术指标分析股价走势和市场形态。"""
         current_date = state["trade_date"]
         ticker = state["company_of_interest"]
         company_name = state["company_of_interest"]
 
+        # 市场分析师可用工具：股价 OHLCV 数据 + 技术指标
         tools = [
             get_stock_data,
             get_indicators,
@@ -68,18 +71,20 @@ Volume-Based Indicators:
         prompt = prompt.partial(current_date=current_date)
         prompt = prompt.partial(ticker=ticker)
 
+        # 将 Prompt 与 LLM 绑定工具，构建可执行链
         chain = prompt | llm.bind_tools(tools)
 
         result = chain.invoke(state["messages"])
 
         report = ""
 
+        # 如果没有工具调用，说明分析师已完成报告生成
         if len(result.tool_calls) == 0:
             report = result.content
 
         return {
             "messages": [result],
-            "market_report": report,
+            "market_report": report,  # 写入市场报告字段
         }
 
     return market_analyst_node

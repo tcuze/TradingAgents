@@ -3,8 +3,10 @@ import json
 
 
 def create_research_manager(llm, memory):
+    """工厂函数：创建 Research Manager 节点函数。该节点裁判多空辩论并制定投资方案。"""
     def research_manager_node(state) -> dict:
-        history = state["investment_debate_state"].get("history", "")
+        """研究经理节点：审阅辩论历史，给出明确的买入/卖出/持有建议并制定具体投资方案。"""
+        history = state["investment_debate_state"].get("history", "")  # 辩论全历史
         market_research_report = state["market_report"]
         sentiment_report = state["sentiment_report"]
         news_report = state["news_report"]
@@ -12,8 +14,9 @@ def create_research_manager(llm, memory):
 
         investment_debate_state = state["investment_debate_state"]
 
+        # 将四份报告合并为当前情境，用于记忆检索
         curr_situation = f"{market_research_report}\n\n{sentiment_report}\n\n{news_report}\n\n{fundamentals_report}"
-        past_memories = memory.get_memories(curr_situation, n_matches=2)
+        past_memories = memory.get_memories(curr_situation, n_matches=2)  # 获取相似历史经验
 
         past_memory_str = ""
         for i, rec in enumerate(past_memories, 1):
@@ -38,6 +41,7 @@ Debate History:
 {history}"""
         response = llm.invoke(prompt)
 
+        # 更新辩论状态，写入裁判结果
         new_investment_debate_state = {
             "judge_decision": response.content,
             "history": investment_debate_state.get("history", ""),
@@ -49,7 +53,7 @@ Debate History:
 
         return {
             "investment_debate_state": new_investment_debate_state,
-            "investment_plan": response.content,
+            "investment_plan": response.content,  # 写入投资方案字段
         }
 
     return research_manager_node

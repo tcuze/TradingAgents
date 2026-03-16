@@ -4,19 +4,22 @@ import json
 
 
 def create_bull_researcher(llm, memory):
+    """工厂函数：创建多方研究员节点函数。"""
     def bull_node(state) -> dict:
+        """多方研究员：基于四份分析报告，构建看多论点并反驳空方论点。"""
         investment_debate_state = state["investment_debate_state"]
-        history = investment_debate_state.get("history", "")
-        bull_history = investment_debate_state.get("bull_history", "")
+        history = investment_debate_state.get("history", "")           # 全部辩论历史
+        bull_history = investment_debate_state.get("bull_history", "") # 多方历史发言
 
-        current_response = investment_debate_state.get("current_response", "")
+        current_response = investment_debate_state.get("current_response", "")  # 空方最新辩论
         market_research_report = state["market_report"]
         sentiment_report = state["sentiment_report"]
         news_report = state["news_report"]
         fundamentals_report = state["fundamentals_report"]
 
+        # 将四份报告合并为当前情境描述，用于记忆检索
         curr_situation = f"{market_research_report}\n\n{sentiment_report}\n\n{news_report}\n\n{fundamentals_report}"
-        past_memories = memory.get_memories(curr_situation, n_matches=2)
+        past_memories = memory.get_memories(curr_situation, n_matches=2)  # 获取最相似的 2 条历史记忆
 
         past_memory_str = ""
         for i, rec in enumerate(past_memories, 1):
@@ -44,14 +47,15 @@ Use this information to deliver a compelling bull argument, refute the bear's co
 
         response = llm.invoke(prompt)
 
-        argument = f"Bull Analyst: {response.content}"
+        argument = f"Bull Analyst: {response.content}"  # 添加发言者标识前缀
 
+        # 更新辩论状态：将名称辩论分别写入全部历史和多方历史
         new_investment_debate_state = {
             "history": history + "\n" + argument,
             "bull_history": bull_history + "\n" + argument,
             "bear_history": investment_debate_state.get("bear_history", ""),
             "current_response": argument,
-            "count": investment_debate_state["count"] + 1,
+            "count": investment_debate_state["count"] + 1,  # 声明次数 +1
         }
 
         return {"investment_debate_state": new_investment_debate_state}
